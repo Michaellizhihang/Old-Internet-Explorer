@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Internet Explorer 4.0 模拟器</title>
+    <style>
+        /* 重置与基础 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            image-rendering: pixelated;
+            font-family: "MS Sans Serif", Tahoma, sans-serif;
+        }
+
+        body {
+            background-color: #008080; /* Windows 95 青色 */
+            overflow: hidden;
+            height: 100vh;
+            cursor: default;
+        }
+
+        /* 桌面图标 */
+        .desktop-icons {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 1;
+        }
+
+        .desktop-icon {
+            width: 75px;
+            text-align: center;
+            color: white;
+            font-size: 11px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .desktop-icon:active .icon-img {
+            filter: brightness(0.8);
+        }
+
+        .icon-img {
+            width: 32px;
+            height: 32px;
+            background: #c0c0c0;
+            margin: 0 auto 5px;
+            border: 1px outset #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        /* IE4 窗口 */
+        .ie-window {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 800px;
+            height: 600px;
+            background: #c0c0c0;
+            border: 2px outset #fff;
+            box-shadow: 2px 2px 0 #000;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        /* 标题栏 */
+        .title-bar {
+            background: linear-gradient(90deg, #000080, #1084d0);
+            color: white;
+            padding: 3px 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: move;
+        }
+
+        .title-bar-text::before {
+            content: "🌐 ";
+        }
+
+        .window-controls button {
+            width: 16px;
+            height: 14px;
+            background: #c0c0c0;
+            border: 1px outset #fff;
+            font-size: 10px;
+            line-height: 12px;
+            cursor: pointer;
+            margin-left: 2px;
+        }
+
+        .window-controls button:active {
+            border: 1px inset #fff;
+        }
+
+        /* 菜单栏 */
+        .menu-bar {
+            background: #c0c0c0;
+            border-bottom: 1px solid #808080;
+            padding: 2px 5px;
+            font-size: 12px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .menu-item {
+            cursor: pointer;
+            padding: 2px 5px;
+        }
+
+        .menu-item:hover {
+            background: #000080;
+            color: white;
+        }
+
+        .menu-item span {
+            text-decoration: underline;
+        }
+
+        /* 工具栏 */
+        .toolbar {
+            background: #c0c0c0;
+            border-bottom: 1px solid #808080;
+            padding: 3px;
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .toolbar-button {
+            width: 24px;
+            height: 22px;
+            background: #c0c0c0;
+            border: 1px outset #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .toolbar-button:active {
+            border: 1px inset #fff;
+        }
+
+        .address-bar {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 1px inset #808080;
+            height: 22px;
+            padding: 0 3px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .address-label {
+            color: #808080;
+            margin-right: 5px;
+        }
+
+        #url-input {
+            border: none;
+            outline: none;
+            flex: 1;
+            font-family: "MS Sans Serif", sans-serif;
+            font-size: 12px;
+        }
+
+        /* 状态栏 */
+        .status-bar {
+            background: #c0c0c0;
+            border-top: 1px solid #fff;
+            padding: 2px 5px;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #808080;
+        }
+
+        /* 主浏览区域 */
+        .browser-view {
+            flex: 1;
+            background: white;
+            border: 2px inset #c0c0c0;
+            overflow: auto;
+            position: relative;
+        }
+
+        /* 复古网站渲染样式 (HTML 3.2 模拟) */
+        .retro-site {
+            padding: 10px;
+            font-family: "Times New Roman", Times, serif;
+        }
+
+        .retro-site table {
+            border-collapse: separate;
+            border-spacing: 2px;
+        }
+
+        .retro-site font[size="7"] { font-size: 48px; }
+        .retro-site font[size="6"] { font-size: 32px; }
+        .retro-site font[size="5"] { font-size: 24px; }
+        .retro-site font[size="4"] { font-size: 18px; }
+        .retro-site font[size="3"] { font-size: 16px; }
+        .retro-site font[size="2"] { font-size: 12px; }
+        .retro-site font[size="1"] { font-size: 10px; }
+
+        .retro-site center { text-align: center; display: block; }
+        
+        .retro-site a { color: #0000EE; text-decoration: underline; cursor: pointer; }
+        .retro-site a:visited { color: #551A8B; }
+        
+        .retro-site marquee {
+            display: block;
+            width: 100%;
+        }
+
+        .retro-site blink {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .retro-site hr {
+            border: none;
+            border-top: 2px groove #c0c0c0;
+            margin: 10px 0;
+        }
+
+        .retro-site img {
+            border: 0;
+        }
+
+        /* 特定网站样式 */
+        .yahoo-96 {
+            background: white;
+        }
+        
+        .yahoo-96 .header {
+            background: #000099;
+            color: white;
+            padding: 10px;
+        }
+
+        .geocities {
+            background: black url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23000" width="100" height="100"/><circle fill="%23ff0" cx="50" cy="50" r="40"/></svg>');
+            color: #0f0;
+            font-family: "Comic Sans MS", cursive;
+        }
+
+        .netscape {
+            background: #cccccc;
+            font-family: Arial, sans-serif;
+        }
+
+        /* 加载动画 */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            display: none;
+        }
+
+        .loading-ie {
+            width: 48px;
+            height: 48px;
+            border: 3px solid #c0c0c0;
+            border-top: 3px solid #000080;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 错误页面 */
+        .error-page {
+            text-align: center;
+            padding: 50px;
+            font-family: "MS Sans Serif", sans-serif;
+        }
+
+        .error-page h1 {
+            color: #000080;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        /* 开始菜单 */
+        .taskbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 28px;
+            background: #c0c0c0;
+            border-top: 2px outset #fff;
+            display: flex;
+            align-items: center;
+            padding: 2px;
+            z-index: 100;
+        }
+
+        .start-button {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 6px;
+            background: #c0c0c0;
+            border: 2px outset #fff;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .start-button:active {
+            border: 2px inset #fff;
+        }
+
+        .start-logo {
+            width: 16px;
+            height: 16px;
+            background: #008080;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+        }
+
+        .taskbar-time {
+            margin-left: auto;
+            border: 2px inset #c0c0c0;
+            padding: 2px 10px;
+            font-size: 12px;
+        }
+
+        /* 滚动条样式 (IE风格) */
+        ::-webkit-scrollbar {
+            width: 16px;
+            height: 16px;
+            background: #c0c0c0;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c0c0c0;
+            border: 2px outset #fff;
+            box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #000;
+        }
+
+        ::-webkit-scrollbar-button {
+            background: #c0c0c0;
+            border: 2px outset #fff;
+            width: 16px;
+            height: 16px;
+        }
+
+        /* 弹出对话框 */
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.3);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .dialog-box {
+            background: #c0c0c0;
+            border: 2px outset #fff;
+            width: 300px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .dialog-title {
+            background: #000080;
+            color: white;
+            padding: 3px 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .dialog-content {
+            padding: 20px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .dialog-buttons {
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .dialog-btn {
+            padding: 4px 20px;
+            background: #c0c0c0;
+            border: 2px outset #fff;
+            font-size: 12px;
+            cursor: pointer;
+            min-width: 75px;
+        }
+
+        .dialog-btn:active {
+            border: 2px inset #fff;
+        }
+
+        .dialog-btn:focus {
+            outline: 1px dotted #000;
+            outline-offset: -4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 桌面图标 -->
+    <div class="desktop-icons">
+        <div class="desktop-icon" onclick="showDialog('我的电脑', '系统错误: 无法访问驱动器 C:\\\n\n请插入软盘。')">
+            <div class="icon-img">💻</div>
+            <div>我的电脑</div>
+        </div>
+        <div class="desktop-icon" onclick="showDialog('回收站', '回收站是空的。')">
+            <div class="icon-img">🗑️</div>
+            <div>回收站</div>
+        </div>
+        <div class="desktop-icon" onclick="showDialog('网络邻居', '无法浏览网络。\n\n网络适配器未找到。')">
+            <div class="icon-img">🌐</div>
+            <div>网上邻居</div>
+        </div>
+    </div>
+
+    <!-- IE4 窗口 -->
+    <div class="ie-window" id="ieWindow">
+        <!-- 标题栏 -->
+        <div class="title-bar" id="titleBar">
+            <div class="title-bar-text">Microsoft Internet Explorer</div>
+            <div class="window-controls">
+                <button onclick="minimizeWindow()" title="最小化">_</button>
+                <button onclick="maximizeWindow()" title="最大化">□</button>
+                <button onclick="closeWindow()" title="关闭" style="font-weight:bold">×</button>
+            </div>
+        </div>
+
+        <!-- 菜单栏 -->
+        <div class="menu-bar">
+            <div class="menu-item"><span>F</span>ile</div>
+            <div class="menu-item"><span>E</span>dit</div>
+            <div class="menu-item"><span>V</span>iew</div>
+            <div class="menu-item"><span>G</span>o</div>
+            <div class="menu-item"><span>F</span>avorites</div>
+            <div class="menu-item"><span>H</span>elp</div>
+        </div>
+
+        <!-- 工具栏 -->
+        <div class="toolbar">
+            <button class="toolbar-button" onclick="navigateBack()" title="Back">←</button>
+            <button class="toolbar-button" onclick="navigateForward()" title="Forward">→</button>
+            <button class="toolbar-button" onclick="stopLoading()" title="Stop">✕</button>
+            <button class="toolbar-button" onclick="refreshPage()" title="Refresh">🔄</button>
+            <button class="toolbar-button" onclick="goHome()" title="Home">🏠</button>
+            
+            <div class="address-bar">
+                <span class="address-label">Address</span>
+                <input type="text" id="url-input" value="http://home.microsoft.com/" onkeypress="handleUrlSubmit(event)">
+            </div>
+            <button class="toolbar-button" onclick="navigateToUrl()" title="Go">➤</button>
+        </div>
+
+        <!-- 状态栏 -->
+        <div class="status-bar">
+            <span id="status-text">Done</span>
+            <span>Internet</span>
+        </div>
+
+        <!-- 浏览区域 -->
+        <div class="browser-view" id="browserView">
+            <div class="loading" id="loadingIndicator">
+                <div class="loading-ie"></div>
+                <div>Connecting...</div>
+            </div>
+            <div id="pageContent" class="retro-site"></div>
+        </div>
+    </div>
+
+    <!-- 任务栏 -->
+    <div class="taskbar">
+        <div class="start-button" onclick="toggleStartMenu()">
+            <div class="start-logo">⚡</div>
+            <span>Start</span>
+        </div>
+        <div style="border: 1px inset #c0c0c0; padding: 2px 10px; font-size: 12px; display: flex; align-items: center; gap: 5px;">
+            <span>🌐</span>
+            <span>Microsoft Internet Explorer</span>
+        </div>
+        <div class="taskbar-time" id="clock">12:00 PM</div>
+    </div>
+
+    <!-- 对话框 -->
+    <div class="dialog-overlay" id="dialogOverlay">
+        <div class="dialog-box">
+            <div class="dialog-title" id="dialogTitle">提示</div>
+            <div class="dialog-content" id="dialogContent"></div>
+            <div class="dialog-buttons">
+                <button class="dialog-btn" onclick="closeDialog()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 历史记录管理
+        let history = [];
+        let currentIndex = -1;
+        let isMaximized = false;
+        let originalPos = { width: '800px', height: '600px', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+
+        // 预定义的复古网站数据
+        const retroSites = {
+            'home.microsoft.com': {
+                title: 'Microsoft Home Page (1996)',
+                content: `
+                    <div class="yahoo-96">
+                        <div class="header">
+                            <table width="100%" border="0">
+                                <tr>
+                                    <td><font size="6" face="Arial" color="white"><b>Microsoft</b></font></td>
+                                    <td align="right"><font color="white" size="2">Where do you want to go today?</font></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <table width="100%" cellpadding="10">
+                            <tr>
+                                <td width="20%" valign="top" bgcolor="#f0f0f0">
+                                    <font size="3"><b>Products</b></font><br>
+                                    <a href="#" onclick="window.parent.navigateTo('windows.microsoft.com'); return false;">Windows 95</a><br>
+                                    <a href="#" onclick="window.parent.navigateTo('office.microsoft.com'); return false;">Office 97</a><br>
+                                    <a href="#" onclick="window.parent.navigateTo('ie.microsoft.com'); return false;">Internet Explorer</a><br>
+                                    <br>
+                                    <font size="3"><b>Support</b></font><br>
+                                    <a href="#">Knowledge Base</a><br>
+                                    <a href="#">Downloads</a>
+                                </td>
+                                <td valign="top">
+                                    <center>
+                                        <marquee behavior="alternate" scrollamount="10">
+                                            <font size="5" color="#000080"><b>Introducing Internet Explorer 4.0!</b></font>
+                                        </marquee>
+                                    </center>
+                                    <br>
+                                    <center>
+                                        <table border="1" cellpadding="20" bgcolor="#ffffcc">
+                                            <tr>
+                                                <td>
+                                                    <center>
+                                                        <font size="5">🌐</font><br>
+                                                        <font size="4"><b>The Web is alive with possibilities</b></font><br>
+                                                        <font size="2">Experience the Internet like never before with Active Desktop™ technology</font>
+                                                    </center>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </center>
+                                    <br>
+                                    <hr>
+                                    <center>
+                                        <font size="2">© 1996-1997 Microsoft Corporation. All rights reserved.</font>
+                                    </center>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                `
+            },
+            'www.yahoo.com': {
+                title: 'Yahoo! (1996)',
+                content: `
+                    <div class="yahoo-96">
+                        <center>
+                            <br>
+                            <font size="7" color="#000099"><b>Yahoo!</b></font><br>
+                            <font size="3">www.yahoo.com</font>
+                            <br><br>
+                            <table border="0" cellpadding="5">
+                                <tr>
+                                    <td><a href="#" onclick="window.parent.showDialog('Arts', 'Arts category is under construction.'); return false;">Arts</a></td>
+                                    <td><a href="#" onclick="window.parent.showDialog('Business', 'Business category is under construction.'); return false;">Business</a></td>
+                                    <td><a href="#" onclick="window.parent.showDialog('Computers', 'Computers category is under construction.'); return false;">Computers</a></td>
+                                    <td><a href="#" onclick="window.parent.showDialog('Education', 'Education category is under construction.'); return false;">Education</a></td>
+                                </tr>
+                                <tr>
+                                    <td><a href="#" onclick="window.parent.showDialog('Entertainment', 'Entertainment category is under construction.'); return false;">Entertainment</a></td>
+                                    <td><a href="#" onclick="window.parent.showDialog('Government', 'Government category is under construction.'); return false;">Government</a></td>
+                                    <td><a href="#" onclick="window.parent.showDialog('Health', 'Health category is under construction.'); return false;">Health</a></td>
+                                    <td><a href="#" onclick="window.parent.showDialog('News', 'News category is under construction.'); return false;">News</a></td>
+                                </tr>
+                                <tr>
+                                    <td><a href="#" onclick="window.parent.showDialog('Recreation', 'Recreation category is under construction.'); return false;">Recreation</a></td>
+                                    <td><a href="#" onclick="window.parent.showDialog('Reference', 'Reference category is under construction.'); return false;">Reference</a></td>
+                                    <td><a href="#" onclick="window.parent.showDialog('Regional', 'Regional category is under construction.'); return false;">Regional</a></td>
+                                    <td><a href="#" onclick="window.parent.showDialog('Science', 'Science category is under construction.'); return false;">Science</a></td>
+                                </tr>
+                                <tr>
+                                    <td><a href="#" onclick="window.parent.showDialog('Social Science', 'Social Science category is under construction.'); return false;">Social Science</a></td>
+                                    <td><a href="#" onclick="window.parent.showDialog('Society', 'Society category is under construction.'); return false;">Society</a></td>
+                                    <td colspan="2"><a href="#" onclick="window.parent.showDialog('What\\'s New', 'Check back tomorrow for updates!'); return false;"><b>What's New</b></a></td>
+                                </tr>
+                            </table>
+                            <br>
+                            <table border="0" width="80%">
+                                <tr>
+                                    <td align="center">
+                                        <form onsubmit="window.parent.showDialog('Search', 'Search functionality requires Java 1.0 plugin.'); return false;">
+                                            <b>Search:</b> <input type="text" size="30">
+                                            <input type="submit" value="Search">
+                                        </form>
+                                    </td>
+                                </tr>
+                            </table>
+                            <br>
+                            <a href="#" onclick="window.parent.navigateTo('www.yahoo.co.jp'); return false;">Yahoo! Japan</a> - 
+                            <a href="#" onclick="window.parent.showDialog('Yahoo! Internet Life', 'Magazine subscription required.'); return false;">Yahoo! Internet Life</a>
+                            <br><br>
+                            <font size="2">
+                                <a href="#" onclick="window.parent.showDialog('Suggest', 'Site suggestions are closed for maintenance.'); return false;">How to Suggest a Site</a> - 
+                                <a href="#" onclick="window.parent.showDialog('Company Info', 'Yahoo! Inc. founded 1994.'); return false;">Company Info</a> - 
+                                <a href="#" onclick="window.parent.showDialog('Investors', 'Stock symbol: YHOO'); return false;">Investor Relations</a>
+                            </font>
+                            <br><br>
+                            <font size="1">© 1994-1996 Yahoo! Inc. All rights reserved.</font>
+                        </center>
+                    </div>
+                `
+            },
+            'www.geocities.com': {
+                title: 'GeoCities (1997)',
+                content: `
+                    <div class="geocities">
+                        <center>
+                            <br>
+                            <font size="7" color="#ff00ff"><b>★ GEOCITIES ★</b></font><br>
+                            <blink><font size="4" color="#00ffff">The #1 Community on the Web!</font></blink>
+                            <br><br>
+                            <marquee scrollamount="5" behavior="scroll" direction="left" width="80%" bgcolor="#000080">
+                                <font color="yellow" size="4">欢迎来到我的主页! Welcome to my Homepage! Willkommen! Bienvenue!</font>
+                            </marquee>
+                            <br><br>
+                            <table border="5" bordercolor="#ff0000" cellpadding="20" width="80%">
+                                <tr>
+                                    <td align="center">
+                                        <font size="6" color="#00ff00">🏠</font><br>
+                                        <font size="5" color="#ffffff"><b>Homesteaders</b></font><br>
+                                        <font color="#ffff00">Create your FREE homepage today!</font><br>
+                                        <button onclick="window.parent.showDialog('Join', 'Registration is currently closed due to high demand. Please try again in 1998.')" style="font-size:16px;padding:5px;">Join Now!</button>
+                                    </td>
+                                </tr>
+                            </table>
+                            <br>
+                            <font size="5" color="#ff6600">Neighborhoods:</font><br>
+                            <table border="2" bordercolor="#00ff00" cellpadding="10">
+                                <tr>
+                                    <td><a href="#" onclick="window.parent.showDialog('Area51', 'Alien research zone.'); return false;" style="color:#00ffff">Area51</a></td>
+                                    <td><a href="#" onclick="window.parent.showDialog('Athens', 'Philosophy and learning.'); return false;" style="color:#ff69b4">Athens</a></td>
+                                    <td><a href="#" onclick="window.parent.showDialog('Hollywood', 'Movies and entertainment.'); return false;" style="color:#ffff00">Hollywood</a></td>
+                                </tr>
+                                <tr>
+                                    <td><a href="#" onclick="window.parent.showDialog('SiliconValley', 'Technology hub.'); return false;" style="color:#00ff00">SiliconValley</a></td>
+                                    <td><a href="#" onclick="window.parent.showDialog('Tokyo', 'Japanese culture.'); return false;" style="color:#ff0000">Tokyo</a></td>
+                                    <td><a href="#" onclick="window.parent.showDialog('Paris', 'Romance and art.'); return false;" style="color:#ffa500">Paris</a></td>
+                                </tr>
+                            </table>
+                            <br>
+                            <font size="2" color="#c0c0c0">
+                                You are visitor number: <font color="red" size="4">000042</font><br>
+                                <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='20'><rect fill='red' x='0' y='0' width='100' height='20'/><text x='50' y='15' font-size='12' fill='white' text-anchor='middle'>COUNTER</text></svg>">
+                            </font>
+                            <br><br>
+                            <font size="1" color="#808080">Best viewed in Netscape Navigator 3.0 or Internet Explorer 3.0 at 800x600</font>
+                        </center>
+                    </div>
+                `
+            },
+            'www.netscape.com': {
+                title: 'Netscape (1996)',
+                content: `
+                    <div class="netscape">
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                            <tr bgcolor="#000000">
+                                <td>
+                                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='50'><rect fill='%23000' width='200' height='50'/><text x='10' y='35' font-family='Arial' font-size='24' fill='%2300ff00' font-weight='bold'>NETSCAPE</text></svg>">
+                                </td>
+                                <td align="right" bgcolor="#000000">
+                                    <font color="#00ff00" size="2">Navigator 3.0 Gold</font>
+                                </td>
+                            </tr>
+                        </table>
+                        <center>
+                            <br>
+                            <font size="6" face="Arial"><b>Welcome to Netscape</b></font>
+                            <br><br>
+                            <table border="0" width="80%">
+                                <tr>
+                                    <td align="center">
+                                        <font size="3">
+                                            <a href="#" onclick="window.parent.showDialog('Download', 'Netscape Navigator 3.0 Gold - 15MB'); return false;">Download</a> | 
+                                            <a href="#" onclick="window.parent.showDialog('Products', 'Navigator, Communicator, SuiteSpot'); return false;">Products</a> | 
+                                            <a href="#" onclick="window.parent.showDialog('Support', '24/7 technical support available'); return false;">Support</a> | 
+                                            <a href="#" onclick="window.parent.showDialog('Developer', 'DevEdge program'); return false;">Developer</a>
+                                        </font>
+                                    </td>
+                                </tr>
+                            </table>
+                            <br>
+                            <table border="1" cellpadding="30" bgcolor="#ffffff" width="60%">
+                                <tr>
+                                    <td align="center">
+                                        <font size="5" color="#000080">The Power of the Internet<br>in Your Hands</font>
+                                        <br><br>
+                                        <font size="3">
+                                            Experience the full power of the World Wide Web with Netscape Navigator™.
+                                            Browse, search, email, and build web pages with the industry standard.
+                                        </font>
+                                        <br><br>
+                                        <a href="#" onclick="window.parent.showDialog('Download', 'Download starting... ETA: 3 hours on 28.8k modem'); return false;"><font size="4"><b>Download Netscape Now</b></font></a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <br>
+                            <font size="1">© 1996 Netscape Communications Corporation</font>
+                        </center>
+                    </div>
+                `
+            },
+            'www.altavista.com': {
+                title: 'AltaVista (1997)',
+                content: `
+                    <div style="background:white; font-family: Arial, sans-serif;">
+                        <center>
+                            <br><br>
+                            <table border="0">
+                                <tr>
+                                    <td><font size="7" color="#000080"><b>AltaVista</b></font></td>
+                                    <td><font size="2" color="#ff0000"><sup>TM</sup></font></td>
+                                </tr>
+                            </table>
+                            <font size="2" color="#666666">The most powerful search engine on the Web</font>
+                            <br><br>
+                            <table border="0" width="80%">
+                                <tr>
+                                    <td align="center">
+                                        <form onsubmit="window.parent.showDialog('Search', 'Searching ' + this.querySelector('input').value + '...\n\nFound 1,240,592 results in 0.32 seconds'); return false;">
+                                            <input type="text" name="q" size="50" style="font-size:14px;"><br><br>
+                                            <input type="submit" value="AltaVista Search" style="font-size:14px; padding:5px 20px;">
+                                            <input type="button" value="I'm Feeling Lucky" onclick="window.parent.showDialog('Lucky', 'Redirecting to random website...')" style="font-size:14px; padding:5px 20px;">
+                                        </form>
+                                    </td>
+                                </tr>
+                            </table>
+                            <br>
+                            <font size="2">
+                                <a href="#" onclick="window.parent.showDialog('Advanced', 'Boolean search operators supported'); return false;">Advanced Search</a> | 
+                                <a href="#" onclick="window.parent.showDialog('Help', 'Search tips and tricks'); return false;">Help</a> | 
+                                <a href="#" onclick="window.parent.showDialog('Add URL', 'Submit your site to the index'); return false;">Add URL</a> | 
+                                <a href="#" onclick="window.parent.showDialog('Translations', 'Babelfish translation service'); return false;">Translations</a>
+                            </font>
+                            <br><br>
+                            <table border="0" width="90%">
+                                <tr>
+                                    <td align="center" bgcolor="#f0f0f0" style="padding:10px;">
+                                        <font size="2">
+                                            <b>Featured:</b> AltaVista Translation Service - Translate web pages instantly!<br>
+                                            Supports English, French, German, Spanish, Portuguese, and Italian.
+                                        </font>
+                                    </td>
+                                </tr>
+                            </table>
+                            <br>
+                            <font size="1" color="#999999">© 1995-1997 Digital Equipment Corporation</font>
+                        </center>
+                    </div>
+                `
+            }
+        };
+
+        // 初始化
+        window.onload = function() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            // 延迟一点加载以确保DOM完全就绪
+            setTimeout(() => {
+                loadSite('home.microsoft.com');
+            }, 100);
+        };
+
+        function updateClock() {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            document.getElementById('clock').textContent = `${hours}:${minutes} ${ampm}`;
+        }
+
+        // 核心加载函数
+        function loadSite(domain) {
+            const contentDiv = document.getElementById('pageContent');
+            const loadingDiv = document.getElementById('loadingIndicator');
+            const statusText = document.getElementById('status-text');
+            const urlInput = document.getElementById('url-input');
+            
+            // 显示加载
+            loadingDiv.style.display = 'block';
+            contentDiv.style.display = 'none';
+            statusText.textContent = 'Connecting to ' + domain + '...';
+            urlInput.value = 'http://' + domain + '/';
+            
+            // 模拟56k拨号延迟
+            setTimeout(() => {
+                const site = retroSites[domain];
+                
+                loadingDiv.style.display = 'none';
+                contentDiv.style.display = 'block';
+                
+                if (site) {
+                    contentDiv.innerHTML = site.content;
+                    document.title = site.title;
+                    statusText.textContent = 'Done';
+                    
+                    // 添加到历史
+                    if (history.length === 0 || history[currentIndex] !== domain) {
+                        currentIndex++;
+                        history = history.slice(0, currentIndex);
+                        history.push(domain);
+                    }
+                } else {
+                    // 404 页面
+                    contentDiv.innerHTML = `
+                        <div class="error-page">
+                            <h1>404 Not Found</h1>
+                            <p>The page cannot be found</p>
+                            <p>The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p>
+                            <br>
+                            <p>Please try the following:</p>
+                            <ul style="text-align:left; display:inline-block;">
+                                <li>If you typed the page address in the Address bar, make sure that it is spelled correctly.</li>
+                                <li>Open the <a href="#" onclick="goHome(); return false;">home page</a>, and then look for links to the information you want.</li>
+                                <li>Click the <a href="#" onclick="navigateBack(); return false;">Back</a> button to try another link.</li>
+                            </ul>
+                            <br><br>
+                            <p>HTTP 404 - File not found<br>Internet Explorer</p>
+                        </div>
+                    `;
+                    statusText.textContent = 'Error: 404 Not Found';
+                }
+            }, 600);
+        }
+
+        // 导航到指定URL
+        function navigateTo(url) {
+            if (!url) return;
+            
+            // 清理URL
+            url = url.replace('http://', '').replace('https://', '').replace(/\/.*/, '');
+            loadSite(url);
+        }
+
+        function handleUrlSubmit(e) {
+            if (e.key === 'Enter') {
+                navigateToUrl();
+            }
+        }
+
+        function navigateToUrl() {
+            const url = document.getElementById('url-input').value;
+            navigateTo(url);
+        }
+
+        function navigateBack() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                loadSite(history[currentIndex]);
+            } else {
+                showDialog('Navigation', 'Cannot go back. This is the first page in your history.');
+            }
+        }
+
+        function navigateForward() {
+            if (currentIndex < history.length - 1) {
+                currentIndex++;
+                loadSite(history[currentIndex]);
+            } else {
+                showDialog('Navigation', 'Cannot go forward. This is the last page in your history.');
+            }
+        }
+
+        function refreshPage() {
+            if (currentIndex >= 0) {
+                loadSite(history[currentIndex]);
+            }
+        }
+
+        function stopLoading() {
+            document.getElementById('loadingIndicator').style.display = 'none';
+            document.getElementById('pageContent').style.display = 'block';
+            document.getElementById('status-text').textContent = 'Stopped';
+        }
+
+        function goHome() {
+            loadSite('home.microsoft.com');
+        }
+
+        // 窗口控制
+        function minimizeWindow() {
+            const win = document.getElementById('ieWindow');
+            win.style.display = 'none';
+            setTimeout(() => {
+                win.style.display = 'flex';
+            }, 800);
+        }
+
+        function maximizeWindow() {
+            const win = document.getElementById('ieWindow');
+            if (!isMaximized) {
+                originalPos = {
+                    width: win.style.width,
+                    height: win.style.height,
+                    top: win.style.top,
+                    left: win.style.left,
+                    transform: win.style.transform
+                };
+                win.style.width = '100%';
+                win.style.height = 'calc(100% - 28px)';
+                win.style.top = '0';
+                win.style.left = '0';
+                win.style.transform = 'none';
+                isMaximized = true;
+            } else {
+                win.style.width = originalPos.width || '800px';
+                win.style.height = originalPos.height || '600px';
+                win.style.top = originalPos.top || '50%';
+                win.style.left = originalPos.left || '50%';
+                win.style.transform = originalPos.transform || 'translate(-50%, -50%)';
+                isMaximized = false;
+            }
+        }
+
+        function closeWindow() {
+            showDialog('Confirm', 'Are you sure you want to close Internet Explorer?', true);
+        }
+
+        // 拖动功能
+        let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        document.getElementById('titleBar').addEventListener('mousedown', function(e) {
+            if (isMaximized) return;
+            isDragging = true;
+            const win = document.getElementById('ieWindow');
+            const rect = win.getBoundingClientRect();
+            dragOffsetX = e.clientX - rect.left;
+            dragOffsetY = e.clientY - rect.top;
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (isDragging) {
+                e.preventDefault();
+                const win = document.getElementById('ieWindow');
+                win.style.left = (e.clientX - dragOffsetX) + 'px';
+                win.style.top = (e.clientY - dragOffsetY) + 'px';
+                win.style.transform = 'none';
+            }
+        });
+
+        document.addEventListener('mouseup', function() {
+            isDragging = false;
+        });
+
+        // 对话框系统
+        let dialogCallback = null;
+
+        function showDialog(title, content, isConfirm = false) {
+            document.getElementById('dialogTitle').textContent = title;
+            document.getElementById('dialogContent').textContent = content;
+            document.getElementById('dialogOverlay').style.display = 'flex';
+            
+            const btnContainer = document.querySelector('.dialog-buttons');
+            btnContainer.innerHTML = '';
+            
+            if (isConfirm) {
+                const yesBtn = document.createElement('button');
+                yesBtn.className = 'dialog-btn';
+                yesBtn.textContent = 'Yes';
+                yesBtn.onclick = function() {
+                    closeDialog();
+                    document.getElementById('ieWindow').style.display = 'none';
+                    setTimeout(() => {
+                        alert('It is now safe to turn off your computer.');
+                        location.reload();
+                    }, 1000);
+                };
+                
+                const noBtn = document.createElement('button');
+                noBtn.className = 'dialog-btn';
+                noBtn.textContent = 'No';
+                noBtn.onclick = closeDialog;
+                
+                btnContainer.appendChild(yesBtn);
+                btnContainer.appendChild(noBtn);
+            } else {
+                const okBtn = document.createElement('button');
+                okBtn.className = 'dialog-btn';
+                okBtn.textContent = 'OK';
+                okBtn.onclick = closeDialog;
+                btnContainer.appendChild(okBtn);
+            }
+        }
+
+        function closeDialog() {
+            document.getElementById('dialogOverlay').style.display = 'none';
+        }
+
+        function toggleStartMenu() {
+            showDialog('Start Menu', 'Programs\n├── Accessories\n├── Internet Explorer\n├── MS-DOS Prompt\n└── Windows Explorer\n\nDocuments\nSettings\nFind\nHelp\nRun...\n\nShut Down...');
+        }
+
+        // 防止右键菜单
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            showDialog('Error', 'Context menu not available in IE4 mode');
+        });
+    </script>
+</body>
+</html>
