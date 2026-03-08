@@ -6,3 +6,4 @@ http://www.yahoo.com/
 http://www.geocities.com/
 http://www.netscape.com/
 http://www.altavista.com/
+（But this is just a web snapshot）
